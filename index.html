@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Why Inflation Feels Higher Than the Headline Number</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+
+<body>
+    <div class="page-shell">
+        <header class="hero">
+            <div class="hero-inner">
+                <p class="eyebrow">CSC316 · Assignment 3</p>
+                <h1>Why Inflation Feels Higher Than the Headline Number</h1>
+                <p class="hero-text">
+                    Inflation is often summarized as one annual percentage. But households do not spend
+                    evenly across all goods and services. When essential categories rise faster than the
+                    overall basket, inflation can feel harsher than the official number suggests.
+                </p>
+                <div class="hero-meta">
+                    <span>Canada</span>
+                    <span>2011–2024</span>
+                    <span>Year-over-Year Inflation</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="content">
+            <section class="read-first">
+                <div class="read-first-card">
+                    <p class="read-first-title">How to Read This Visualization</p>
+                    <ul>
+                        <li>The chart shows <strong>annual inflation rates</strong>, not total price growth since a base
+                            year.</li>
+                        <li>A value of <strong>5%</strong> in 2022 means that category was about 5% more expensive than
+                            in 2021.</li>
+                        <li><strong>Official inflation</strong> is the all-items CPI rate. <strong>Your
+                                inflation</strong> is a weighted estimate based on your spending mix.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-copy">
+                    <p class="section-kicker">1 · The Headline Rate</p>
+                    <h2>The official rate is only one view of inflation.</h2>
+                    <p>
+                        This chart shows year-over-year inflation by category. The all-items rate summarizes the
+                        overall basket, but it can hide sharper price changes in the categories people notice most.
+                    </p>
+                </div>
+
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <div>
+                            <p class="chart-kicker">Annual Inflation Rate</p>
+                            <h3>Consumer Prices by Category, Year-over-Year % Change</h3>
+                        </div>
+                        <div class="chart-legend" id="legend"></div>
+                    </div>
+
+                    <div id="chart"></div>
+
+                    <p class="method-note">
+                        Each point shows the percentage change from the previous year. For example, 2022 compares prices
+                        in 2022 with 2021.
+                    </p>
+
+                    <div class="chart-footer">
+                        <div class="year-control">
+                            <label for="yearSlider">Selected Year</label>
+                            <input type="range" id="yearSlider" />
+                            <span id="yearLabel"></span>
+                        </div>
+
+                        <div class="year-stats">
+                            <div class="stat-box">
+                                <span class="stat-label">Official Inflation Rate</span>
+                                <span class="stat-value" id="officialRate">—</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-label">Personal Inflation Rate</span>
+                                <span class="stat-value" id="personalRateStat">—</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-copy">
+                    <p class="section-kicker">2 · Category Comparison</p>
+                    <h2>The same year can look very different across categories.</h2>
+                    <p>
+                        Move the slider to compare inflation across categories in a single year.
+                        This makes it easier to see when essentials outpace the overall index.
+                    </p>
+                </div>
+
+                <div class="category-panel">
+                    <div class="category-cards" id="categoryCards"></div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-copy">
+                    <p class="section-kicker">3 · Build Your Own Basket</p>
+                    <h2>Your inflation depends on what you spend on.</h2>
+                    <p>
+                        Build a simplified spending basket below. The sliders always add to 100%, so changing one
+                        category automatically adjusts the rest. This creates a personal inflation estimate for the
+                        selected year.
+                    </p>
+                </div>
+
+                <div class="sliders-panel">
+                    <div class="slider-group">
+                        <label for="housingSlider">Shelter</label>
+                        <input type="range" id="housingSlider" min="0" max="100" value="40" />
+                        <span id="housingValue">40%</span>
+                    </div>
+
+                    <div class="slider-group">
+                        <label for="foodSlider">Food</label>
+                        <input type="range" id="foodSlider" min="0" max="100" value="25" />
+                        <span id="foodValue">25%</span>
+                    </div>
+
+                    <div class="slider-group">
+                        <label for="gasSlider">Gas / Transportation</label>
+                        <input type="range" id="gasSlider" min="0" max="100" value="15" />
+                        <span id="gasValue">15%</span>
+                    </div>
+
+                    <div class="slider-group">
+                        <label for="otherSlider">Other</label>
+                        <input type="range" id="otherSlider" min="0" max="100" value="20" />
+                        <span id="otherValue">20%</span>
+                    </div>
+
+                    <p class="slider-note" id="weightTotalNote">Total: 100%</p>
+                </div>
+            </section>
+
+            <section class="panel result-panel">
+                <div class="panel-copy">
+                    <p class="section-kicker">4 · Compare the Two</p>
+                    <h2>The same economy can feel different to different households.</h2>
+                    <p>
+                        This final comparison shows the official inflation rate and your estimated personal inflation
+                        rate for the selected year. A household weighted toward fast-rising essentials may experience
+                        inflation more sharply than the headline number suggests.
+                    </p>
+                </div>
+
+                <div class="comparison-panel">
+                    <div class="comparison-bars">
+                        <div class="comparison-bar-wrap">
+                            <div class="comparison-value" id="officialBarLabel">—</div>
+                            <div class="comparison-bar official" id="officialBar"></div>
+                            <div class="comparison-name">Official Inflation</div>
+                        </div>
+
+                        <div class="comparison-bar-wrap">
+                            <div class="comparison-value" id="personalBarLabel">—</div>
+                            <div class="comparison-bar personal" id="personalBar"></div>
+                            <div class="comparison-name">Your Inflation</div>
+                        </div>
+                    </div>
+
+                    <div class="comparison-text" id="comparisonText">
+                        Adjust the basket to compare your personal inflation rate with the official figure.
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>
+                Data source: Statistics Canada, Consumer Price Index (Table 18-10-0004-01).
+                Values shown are annual year-over-year inflation rates derived from yearly averages.
+            </p>
+            <p>
+                Visualization designed and implemented in D3.js for CSC316.
+            </p>
+        </footer>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+
+</html>
