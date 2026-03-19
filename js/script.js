@@ -2,11 +2,11 @@ const margin = { top: 20, right: 30, bottom: 40, left: 60 };
 const chartHeight = 460;
 
 const colors = {
-    all: "#e5e7eb",
-    food: "#34d399",
-    shelter: "#60a5fa",
+    all: "#475569",
+    food: "#10b981",
+    shelter: "#3b82f6",
     gas: "#f59e0b",
-    transportation: "#a78bfa"
+    transportation: "#8b5cf6"
 };
 
 const prettyNames = {
@@ -81,10 +81,10 @@ function setupControls() {
     yearSlider.max = years[years.length - 1];
     yearSlider.step = 1;
     yearSlider.value = years[years.length - 1];
-    yearLabel.textContent = `${yearSlider.value} vs ${yearSlider.value - 1}`;
+    yearLabel.textContent = `${yearSlider.value}`;
 
     yearSlider.addEventListener("input", () => {
-        yearLabel.textContent = `${yearSlider.value} vs ${yearSlider.value - 1}`;
+        yearLabel.textContent = `${yearSlider.value}`;
         renderCards();
         updateStats();
         updateComparison();
@@ -317,7 +317,7 @@ function handleHoverMove(event) {
         .attr("cx", d => xScale(clampedYear))
         .attr("cy", d => yScale(d.value))
         .attr("fill", d => colors[d.category] || "#fff")
-        .attr("stroke", "#090d12")
+        .attr("stroke", "#ffffff")
         .attr("stroke-width", 2);
 
     dots.exit().remove();
@@ -328,7 +328,7 @@ function handleHoverMove(event) {
         .filter(Boolean);
 
     tooltip.html(`
-    <div class="tooltip-title">${clampedYear} vs ${clampedYear - 1}</div>
+    <div class="tooltip-title">${clampedYear}</div>
     ${ordered.map(d => `
       <div class="tooltip-row">
         <span class="tooltip-label">
@@ -398,7 +398,7 @@ function renderCards() {
 
     cards.append("div")
         .attr("class", "category-card-sub")
-        .text(d => d.value !== null ? `${selectedYear} vs ${selectedYear - 1}` : "No data");
+        .text(d => d.value !== null ? `${selectedYear}` : "No data");
 }
 
 function updateStats() {
