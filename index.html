@@ -46,7 +46,7 @@
             <section class="panel">
                 <div class="panel-copy">
                     <p class="section-kicker">1 · The Headline Rate</p>
-                    <h2>The official rate is only one view of inflation.</h2>
+                    <h2>The Official Rate Is Only One View Of Inflation.</h2>
                     <p>
                         This chart shows year-over-year inflation by category. The all-items rate summarizes the
                         overall basket, but it can hide sharper price changes in the categories people notice most.
@@ -54,36 +54,35 @@
                 </div>
 
                 <div class="chart-panel">
-                    <div class="chart-header">
+                    <div class="chart-header chart-header-stacked">
                         <div>
                             <p class="chart-kicker">Annual Inflation Rate</p>
                             <h3>Consumer Prices by Category, Year-over-Year % Change</h3>
                         </div>
-                        <div class="chart-legend" id="legend"></div>
+                        <div class="chart-legend chart-legend-left" id="legend"></div>
                     </div>
 
                     <div id="chart"></div>
 
                     <p class="method-note">
-                        Each point shows the percentage change from the previous year. Hover over the chart to compare
-                        categories in any year.
+                        Hover to compare categories in any year. Click the chart to select a year and update the rest of
+                        the page.
                     </p>
 
                     <div class="chart-footer">
                         <div class="year-control">
                             <label for="yearSlider">Selected Year</label>
                             <input type="range" id="yearSlider" />
-                            <span id="yearLabel"></span>
+                            <div class="year-inline">
+                                <span id="yearLabel"></span>
+                                <span class="year-hint">Use the slider or click directly on the chart</span>
+                            </div>
                         </div>
 
-                        <div class="year-stats">
+                        <div class="year-stats year-stats-single">
                             <div class="stat-box">
                                 <span class="stat-label">Official Inflation Rate</span>
                                 <span class="stat-value" id="officialRate">—</span>
-                            </div>
-                            <div class="stat-box">
-                                <span class="stat-label">Personal Inflation Rate</span>
-                                <span class="stat-value" id="personalRateStat">—</span>
                             </div>
                         </div>
                     </div>
@@ -93,14 +92,19 @@
             <section class="panel">
                 <div class="panel-copy">
                     <p class="section-kicker">2 · Category Comparison</p>
-                    <h2>The same year can look very different across categories.</h2>
+                    <h2>The Same Year Can Look Very Different Across Categories.</h2>
                     <p>
-                        Move the slider to compare inflation across categories in a single year.
-                        This makes it easier to see when essentials outpace the overall index.
+                        Once one year is selected, the cards below show how differently inflation was distributed across
+                        categories. This helps reveal when essentials outpaced the overall index.
                     </p>
                 </div>
 
                 <div class="category-panel">
+                    <div class="section-bridge">
+                        Now that we’ve seen how categories differ, we can ask a more personal question:
+                        <strong>what happens when a household spends more heavily in the faster-rising
+                            categories?</strong>
+                    </div>
                     <div class="category-cards" id="categoryCards"></div>
                 </div>
             </section>
@@ -108,36 +112,48 @@
             <section class="panel">
                 <div class="panel-copy">
                     <p class="section-kicker">3 · Build Your Own Basket</p>
-                    <h2>Your inflation depends on what you spend on.</h2>
+                    <h2>Your Inflation Depends On What You Spend On.</h2>
                     <p>
-                        Build a simplified spending basket below. The sliders always add to 100%, so changing one
-                        category automatically adjusts the rest. This creates a personal inflation estimate for the
+                        Build a simplified spending basket below. The inputs always add to 100%, so changing one
+                        category automatically adjusts the others. This creates a personal inflation estimate for the
                         selected year.
                     </p>
                 </div>
 
                 <div class="sliders-panel">
+                    <p class="formula-note">
+                        <strong>Your inflation is a weighted average</strong> of category inflation rates based on your
+                        spending.
+                        If more of your budget goes toward categories with faster price increases, your personal
+                        inflation
+                        rate rises too.
+                    </p>
+
                     <div class="slider-group">
                         <label for="housingSlider">Shelter</label>
                         <input type="range" id="housingSlider" min="0" max="100" value="40" />
+                        <input type="number" id="housingInput" min="0" max="100" value="40" class="weight-input" />
                         <span id="housingValue">40%</span>
                     </div>
 
                     <div class="slider-group">
                         <label for="foodSlider">Food</label>
                         <input type="range" id="foodSlider" min="0" max="100" value="25" />
+                        <input type="number" id="foodInput" min="0" max="100" value="25" class="weight-input" />
                         <span id="foodValue">25%</span>
                     </div>
 
                     <div class="slider-group">
-                        <label for="gasSlider">Gas / Transportation</label>
-                        <input type="range" id="gasSlider" min="0" max="100" value="15" />
-                        <span id="gasValue">15%</span>
+                        <label for="transportSlider">Transportation</label>
+                        <input type="range" id="transportSlider" min="0" max="100" value="15" />
+                        <input type="number" id="transportInput" min="0" max="100" value="15" class="weight-input" />
+                        <span id="transportValue">15%</span>
                     </div>
 
                     <div class="slider-group">
                         <label for="otherSlider">Other</label>
                         <input type="range" id="otherSlider" min="0" max="100" value="20" />
+                        <input type="number" id="otherInput" min="0" max="100" value="20" class="weight-input" />
                         <span id="otherValue">20%</span>
                     </div>
 
@@ -148,7 +164,7 @@
             <section class="panel result-panel">
                 <div class="panel-copy">
                     <p class="section-kicker">4 · Compare the Two</p>
-                    <h2>The same economy can feel different to different households.</h2>
+                    <h2>The Same Economy Can Feel Different To Different Households.</h2>
                     <p>
                         This final comparison shows the official inflation rate and your estimated personal inflation
                         rate for the selected year. A household weighted toward fast-rising essentials may experience

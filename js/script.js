@@ -5,7 +5,6 @@ const colors = {
     all: "#475569",
     food: "#10b981",
     shelter: "#3b82f6",
-    gas: "#f59e0b",
     transportation: "#8b5cf6"
 };
 
@@ -13,7 +12,6 @@ const prettyNames = {
     all: "All-Items",
     food: "Food",
     shelter: "Shelter",
-    gas: "Gas",
     transportation: "Transportation"
 };
 
@@ -24,6 +22,7 @@ let categories = [];
 
 let svg, chartGroup, xScale, yScale, xAxisGroup, yAxisGroup, gridGroup, zeroLine;
 let lineGroup, hoverGroup, hoverLine, hoverDots, overlayRect, tooltip;
+let selectedYearGroup, selectedYearLine, selectedYearDots;
 let chartWidth = 0;
 
 const chartContainer = d3.select("#chart");
@@ -33,16 +32,20 @@ const categoryCards = d3.select("#categoryCards");
 const yearSlider = document.getElementById("yearSlider");
 const yearLabel = document.getElementById("yearLabel");
 const officialRate = document.getElementById("officialRate");
-const personalRateStat = document.getElementById("personalRateStat");
 
 const housingSlider = document.getElementById("housingSlider");
 const foodSlider = document.getElementById("foodSlider");
-const gasSlider = document.getElementById("gasSlider");
+const transportSlider = document.getElementById("transportSlider");
 const otherSlider = document.getElementById("otherSlider");
+
+const housingInput = document.getElementById("housingInput");
+const foodInput = document.getElementById("foodInput");
+const transportInput = document.getElementById("transportInput");
+const otherInput = document.getElementById("otherInput");
 
 const housingValue = document.getElementById("housingValue");
 const foodValue = document.getElementById("foodValue");
-const gasValue = document.getElementById("gasValue");
+const transportValue = document.getElementById("transportValue");
 const otherValue = document.getElementById("otherValue");
 const weightTotalNote = document.getElementById("weightTotalNote");
 
@@ -51,6 +54,33 @@ const personalBar = document.getElementById("personalBar");
 const officialBarLabel = document.getElementById("officialBarLabel");
 const personalBarLabel = document.getElementById("personalBarLabel");
 const comparisonText = document.getElementById("comparisonText");
+
+const weightControls = [
+    {
+        key: "shelter",
+        slider: housingSlider,
+        input: housingInput,
+        valueEl: housingValue
+    },
+    {
+        key: "food",
+        slider: foodSlider,
+        input: foodInput,
+        valueEl: foodValue
+    },
+    {
+        key: "transportation",
+        slider: transportSlider,
+        input: transportInput,
+        valueEl: transportValue
+    },
+    {
+        key: "other",
+        slider: otherSlider,
+        input: otherInput,
+        valueEl: otherValue
+    }
+];
 
 d3.csv("data/inflation_cleaned.csv", d => ({
     year: +d.year,
@@ -62,10 +92,8 @@ d3.csv("data/inflation_cleaned.csv", d => ({
         .sort((a, b) => a.year - b.year);
 
     groupedData = d3.group(rawData, d => d.category);
-    categories = Array.from(groupedData.keys()).filter(c =>
-        ["all", "food", "shelter", "gas", "transportation"].includes(c)
-    );
 
+    categories = ["all", "shelter", "food", "transportation"].filter(c => groupedData.has(c));
     years = Array.from(new Set(rawData.map(d => d.year))).sort((a, b) => a - b);
 
     setupControls();
@@ -81,70 +109,202 @@ function setupControls() {
     yearSlider.max = years[years.length - 1];
     yearSlider.step = 1;
     yearSlider.value = years[years.length - 1];
-    yearLabel.textContent = `${yearSlider.value}`;
 
     yearSlider.addEventListener("input", () => {
-        yearLabel.textContent = `${yearSlider.value}`;
-        renderCards();
-        updateStats();
-        updateComparison();
+        updateSelectedYear(+yearSlider.value);
     });
 
+    updateYearLabel();
     setupWeightSliders();
-    updateWeightLabels();
+    syncInputsAndLabels();
 }
 
 function setupWeightSliders() {
-    const sliders = [housingSlider, foodSlider, gasSlider, otherSlider];
+    weightControls.forEach(control => {
+        control.slider.addEventListener("input", () => {
+            applyWeightChange(control.key, clampValue(control.slider.value));
+        });
 
-    sliders.forEach(slider => {
-        slider.addEventListener("input", event => {
-            rebalanceSliders(event.target);
-            updateWeightLabels();
-            updateComparison();
+        control.input.addEventListener("input", () => {
+            const parsed = clampValue(control.input.value === "" ? 0 : control.input.value);
+            applyWeightChange(control.key, parsed);
+        });
+
+        control.input.addEventListener("blur", () => {
+            const parsed = clampValue(control.input.value === "" ? 0 : control.input.value);
+            applyWeightChange(control.key, parsed);
         });
     });
 }
 
-function rebalanceSliders(changedSlider) {
-    const sliders = [housingSlider, foodSlider, gasSlider, otherSlider];
-    const changedValue = +changedSlider.value;
-    const remaining = 100 - changedValue;
-
-    const others = sliders.filter(s => s !== changedSlider);
-    const othersTotal = d3.sum(others, s => +s.value);
-
-    if (othersTotal === 0) {
-        const base = Math.floor(remaining / others.length);
-        let leftover = remaining - base * others.length;
-
-        others.forEach(slider => {
-            const value = base + (leftover > 0 ? 1 : 0);
-            slider.value = value;
-            if (leftover > 0) leftover -= 1;
-        });
-    } else {
-        let assigned = 0;
-        others.forEach((slider, i) => {
-            if (i === others.length - 1) {
-                slider.value = remaining - assigned;
-            } else {
-                const value = Math.round((+slider.value / othersTotal) * remaining);
-                slider.value = value;
-                assigned += value;
-            }
-        });
-    }
+function clampValue(value) {
+    return Math.max(0, Math.min(100, Math.round(+value || 0)));
 }
 
-function updateWeightLabels() {
+function getWeights() {
+    return {
+        shelter: +housingSlider.value,
+        food: +foodSlider.value,
+        transportation: +transportSlider.value,
+        other: +otherSlider.value
+    };
+}
+
+function setWeights(weights) {
+    housingSlider.value = weights.shelter;
+    foodSlider.value = weights.food;
+    transportSlider.value = weights.transportation;
+    otherSlider.value = weights.other;
+
+    housingInput.value = weights.shelter;
+    foodInput.value = weights.food;
+    transportInput.value = weights.transportation;
+    otherInput.value = weights.other;
+
+    syncInputsAndLabels();
+}
+
+function syncInputsAndLabels() {
     housingValue.textContent = `${housingSlider.value}%`;
     foodValue.textContent = `${foodSlider.value}%`;
-    gasValue.textContent = `${gasSlider.value}%`;
+    transportValue.textContent = `${transportSlider.value}%`;
     otherValue.textContent = `${otherSlider.value}%`;
 
-    const total = +housingSlider.value + +foodSlider.value + +gasSlider.value + +otherSlider.value;
+    housingInput.value = housingSlider.value;
+    foodInput.value = foodSlider.value;
+    transportInput.value = transportSlider.value;
+    otherInput.value = otherSlider.value;
+
+    const total =
+        +housingSlider.value +
+        +foodSlider.value +
+        +transportSlider.value +
+        +otherSlider.value;
+
     weightTotalNote.textContent = `Total: ${total}%`;
+}
+
+function applyWeightChange(changedKey, newValue) {
+    const weights = getWeights();
+    const oldValue = weights[changedKey];
+    const delta = newValue - oldValue;
+
+    if (delta === 0) {
+        setWeights(weights);
+        updateComparison();
+        return;
+    }
+
+    weights[changedKey] = newValue;
+
+    const otherKeys = Object.keys(weights).filter(k => k !== changedKey);
+
+    if (delta > 0) {
+        let remainingToRemove = delta;
+
+        const sortedOthers = otherKeys
+            .map(key => ({ key, value: weights[key] }))
+            .sort((a, b) => b.value - a.value);
+
+        sortedOthers.forEach(item => {
+            if (remainingToRemove <= 0) return;
+            const reduction = Math.min(weights[item.key], remainingToRemove);
+            weights[item.key] -= reduction;
+            remainingToRemove -= reduction;
+        });
+
+        if (remainingToRemove > 0) {
+            weights[changedKey] = newValue - remainingToRemove;
+        }
+    } else {
+        let amountToAdd = Math.abs(delta);
+
+        const sortedOthers = otherKeys
+            .map(key => ({ key, space: 100 - weights[key] }))
+            .sort((a, b) => b.space - a.space);
+
+        let totalSpace = d3.sum(sortedOthers, d => d.space);
+
+        if (totalSpace === 0) {
+            weights[changedKey] = oldValue;
+        } else {
+            let assigned = 0;
+
+            sortedOthers.forEach((item, i) => {
+                if (i === sortedOthers.length - 1) {
+                    const add = Math.min(item.space, amountToAdd - assigned);
+                    weights[item.key] += add;
+                    assigned += add;
+                } else {
+                    const proportionalAdd = Math.min(
+                        item.space,
+                        Math.round((item.space / totalSpace) * amountToAdd)
+                    );
+                    weights[item.key] += proportionalAdd;
+                    assigned += proportionalAdd;
+                }
+            });
+
+            let leftover = amountToAdd - assigned;
+
+            if (leftover > 0) {
+                sortedOthers.forEach(item => {
+                    if (leftover <= 0) return;
+                    const room = 100 - weights[item.key];
+                    const add = Math.min(room, leftover);
+                    weights[item.key] += add;
+                    leftover -= add;
+                });
+            }
+        }
+    }
+
+    normalizeWeights(weights, changedKey);
+    setWeights(weights);
+    updateComparison();
+}
+
+function normalizeWeights(weights, priorityKey) {
+    const keys = Object.keys(weights);
+
+    keys.forEach(key => {
+        weights[key] = clampValue(weights[key]);
+    });
+
+    let total = d3.sum(keys, key => weights[key]);
+
+    if (total === 100) return;
+
+    if (total < 100) {
+        let deficit = 100 - total;
+        const candidates = keys.filter(key => key !== priorityKey).sort((a, b) => weights[a] - weights[b]);
+
+        for (const key of candidates) {
+            if (deficit <= 0) break;
+            const room = 100 - weights[key];
+            const add = Math.min(room, deficit);
+            weights[key] += add;
+            deficit -= add;
+        }
+
+        if (deficit > 0) {
+            weights[priorityKey] += deficit;
+        }
+    } else {
+        let excess = total - 100;
+        const candidates = keys.filter(key => key !== priorityKey).sort((a, b) => weights[b] - weights[a]);
+
+        for (const key of candidates) {
+            if (excess <= 0) break;
+            const remove = Math.min(weights[key], excess);
+            weights[key] -= remove;
+            excess -= remove;
+        }
+
+        if (excess > 0) {
+            weights[priorityKey] = Math.max(0, weights[priorityKey] - excess);
+        }
+    }
 }
 
 function setupChart() {
@@ -163,8 +323,8 @@ function setupChart() {
 
     yScale = d3.scaleLinear()
         .domain([
-            Math.min(-1, d3.min(rawData, d => d.value) - 0.5),
-            d3.max(rawData, d => d.value) + 0.5
+            Math.min(-1, d3.min(rawData.filter(d => categories.includes(d.category)), d => d.value) - 0.5),
+            d3.max(rawData.filter(d => categories.includes(d.category)), d => d.value) + 0.5
         ])
         .nice()
         .range([chartHeight, 0]);
@@ -183,6 +343,10 @@ function setupChart() {
 
     lineGroup = chartGroup.append("g");
 
+    selectedYearGroup = chartGroup.append("g");
+    selectedYearLine = selectedYearGroup.append("line").attr("class", "selected-line");
+    selectedYearDots = selectedYearGroup.append("g");
+
     hoverGroup = chartGroup.append("g").style("display", "none");
 
     hoverLine = hoverGroup.append("line")
@@ -193,6 +357,7 @@ function setupChart() {
     hoverDots = hoverGroup.append("g");
 
     overlayRect = chartGroup.append("rect")
+        .attr("class", "chart-click-target")
         .attr("fill", "transparent")
         .attr("pointer-events", "all")
         .on("mouseenter", () => {
@@ -203,7 +368,8 @@ function setupChart() {
             hoverGroup.style("display", "none");
             tooltip.style("opacity", 0);
         })
-        .on("mousemove", handleHoverMove);
+        .on("mousemove", handleHoverMove)
+        .on("click", handleChartClick);
 
     tooltip = chartContainer.append("div")
         .attr("class", "tooltip multi-tooltip");
@@ -212,7 +378,7 @@ function setupChart() {
 function renderLegend() {
     legendContainer.selectAll("*").remove();
 
-    const legendOrder = ["all", "food", "gas", "shelter", "transportation"]
+    const legendOrder = ["all", "food", "shelter", "transportation"]
         .filter(category => categories.includes(category));
 
     legendOrder.forEach(category => {
@@ -229,6 +395,7 @@ function updateAll() {
     renderCards();
     updateStats();
     updateComparison();
+    updateSelectedYearMarker();
 }
 
 function updateChart() {
@@ -276,7 +443,7 @@ function updateChart() {
         .append("path")
         .attr("class", "line-path")
         .merge(paths)
-        .attr("stroke", d => colors[d.category] || "#fff")
+        .attr("stroke", d => colors[d.category] || "#999")
         .attr("d", d => line(d.values));
 
     paths.exit().remove();
@@ -288,20 +455,19 @@ function updateChart() {
     hoverLine
         .attr("y1", 0)
         .attr("y2", chartHeight);
+
+    selectedYearLine
+        .attr("y1", 0)
+        .attr("y2", chartHeight);
+
+    updateSelectedYearMarker();
 }
 
 function handleHoverMove(event) {
     const [mx] = d3.pointer(event);
-    const hoveredYear = Math.round(xScale.invert(mx));
-    const clampedYear = Math.max(years[0], Math.min(years[years.length - 1], hoveredYear));
+    const clampedYear = getNearestYear(mx);
 
-    const yearData = categories.map(category => {
-        const row = groupedData.get(category)?.find(d => d.year === clampedYear);
-        return {
-            category,
-            value: row ? row.value : null
-        };
-    });
+    const yearData = getYearData(clampedYear);
 
     hoverLine
         .attr("x1", xScale(clampedYear))
@@ -316,29 +482,29 @@ function handleHoverMove(event) {
         .merge(dots)
         .attr("cx", d => xScale(clampedYear))
         .attr("cy", d => yScale(d.value))
-        .attr("fill", d => colors[d.category] || "#fff")
+        .attr("fill", d => colors[d.category] || "#999")
         .attr("stroke", "#ffffff")
         .attr("stroke-width", 2);
 
     dots.exit().remove();
 
-    const ordered = ["all", "food", "shelter", "gas", "transportation"]
+    const ordered = ["all", "food", "shelter", "transportation"]
         .filter(c => categories.includes(c))
         .map(category => yearData.find(d => d.category === category))
         .filter(Boolean);
 
     tooltip.html(`
-    <div class="tooltip-title">${clampedYear}</div>
-    ${ordered.map(d => `
-      <div class="tooltip-row">
-        <span class="tooltip-label">
-          <span class="tooltip-dot" style="background:${colors[d.category]}"></span>
-          ${prettyNames[d.category]}
-        </span>
-        <span class="tooltip-value">${d.value.toFixed(1)}%</span>
-      </div>
-    `).join("")}
-  `);
+        <div class="tooltip-title">${clampedYear}</div>
+        ${ordered.map(d => `
+            <div class="tooltip-row">
+                <span class="tooltip-label">
+                    <span class="tooltip-dot" style="background:${colors[d.category]}"></span>
+                    ${prettyNames[d.category]}
+                </span>
+                <span class="tooltip-value">${d.value.toFixed(1)}%</span>
+            </div>
+        `).join("")}
+    `);
 
     const tooltipNode = tooltip.node();
     const tooltipWidth = tooltipNode.offsetWidth;
@@ -365,10 +531,68 @@ function handleHoverMove(event) {
         .style("opacity", 1);
 }
 
+function handleChartClick(event) {
+    const [mx] = d3.pointer(event);
+    const clickedYear = getNearestYear(mx);
+    updateSelectedYear(clickedYear);
+}
+
+function getNearestYear(mouseX) {
+    const hoveredYear = Math.round(xScale.invert(mouseX));
+    return Math.max(years[0], Math.min(years[years.length - 1], hoveredYear));
+}
+
+function getYearData(year) {
+    return categories.map(category => {
+        const row = groupedData.get(category)?.find(d => d.year === year);
+        return {
+            category,
+            value: row ? row.value : null
+        };
+    });
+}
+
+function updateSelectedYear(year) {
+    yearSlider.value = year;
+    updateYearLabel();
+    renderCards();
+    updateStats();
+    updateComparison();
+    updateSelectedYearMarker();
+}
+
+function updateYearLabel() {
+    yearLabel.textContent = `${yearSlider.value}`;
+}
+
+function updateSelectedYearMarker() {
+    const selectedYear = +yearSlider.value;
+
+    selectedYearLine
+        .attr("x1", xScale(selectedYear))
+        .attr("x2", xScale(selectedYear));
+
+    const yearData = getYearData(selectedYear).filter(d => d.value !== null);
+
+    const dots = selectedYearDots.selectAll("circle")
+        .data(yearData, d => d.category);
+
+    dots.enter()
+        .append("circle")
+        .attr("class", "selected-dot")
+        .attr("r", 6)
+        .merge(dots)
+        .attr("cx", d => xScale(selectedYear))
+        .attr("cy", d => yScale(d.value))
+        .attr("fill", d => colors[d.category] || "#999");
+
+    dots.exit().remove();
+}
+
 function renderCards() {
     const selectedYear = +yearSlider.value;
 
-    const cardOrder = ["all", "shelter", "food", "gas", "transportation"]
+    const cardOrder = ["all", "shelter", "food", "transportation"]
         .filter(category => categories.includes(category));
 
     const cardData = cardOrder.map(category => {
@@ -393,7 +617,7 @@ function renderCards() {
 
     cards.append("div")
         .attr("class", "category-card-value")
-        .style("color", d => colors[d.category] || "#fff")
+        .style("color", d => colors[d.category] || "#999")
         .text(d => d.value !== null ? `${d.value.toFixed(1)}%` : "—");
 
     cards.append("div")
@@ -404,10 +628,7 @@ function renderCards() {
 function updateStats() {
     const selectedYear = +yearSlider.value;
     const official = getValue("all", selectedYear);
-    const personal = getPersonalRate(selectedYear);
-
     officialRate.textContent = `${official.toFixed(1)}%`;
-    personalRateStat.textContent = `${personal.toFixed(1)}%`;
 }
 
 function getValue(category, year) {
@@ -418,19 +639,13 @@ function getValue(category, year) {
 function getPersonalRate(year) {
     const shelterRate = getValue("shelter", year);
     const foodRate = getValue("food", year);
-
-    const transportRate = categories.includes("transportation")
-        ? getValue("transportation", year)
-        : categories.includes("gas")
-            ? getValue("gas", year)
-            : getValue("all", year);
-
+    const transportRate = getValue("transportation", year);
     const allRate = getValue("all", year);
 
     return (
         (+housingSlider.value / 100) * shelterRate +
         (+foodSlider.value / 100) * foodRate +
-        (+gasSlider.value / 100) * transportRate +
+        (+transportSlider.value / 100) * transportRate +
         (+otherSlider.value / 100) * allRate
     );
 }
@@ -440,8 +655,12 @@ function updateComparison() {
     const official = getValue("all", selectedYear);
     const personal = getPersonalRate(selectedYear);
 
+    const minRate = Math.min(0, official, personal);
     const maxRate = Math.max(official, personal, 1);
-    const scaleHeight = d3.scaleLinear().domain([0, maxRate]).range([30, 220]);
+
+    const scaleHeight = d3.scaleLinear()
+        .domain([minRate, maxRate])
+        .range([30, 220]);
 
     officialBar.style.height = `${scaleHeight(official)}px`;
     personalBar.style.height = `${scaleHeight(personal)}px`;
@@ -453,13 +672,13 @@ function updateComparison() {
 
     if (Math.abs(diff) < 0.2) {
         comparisonText.textContent =
-            `In ${selectedYear}, your basket is almost identical to the official inflation rate.`;
+            `In ${selectedYear}, your basket is almost identical to the official inflation rate. Your spending mix tracks the overall CPI fairly closely.`;
     } else if (diff > 0) {
         comparisonText.textContent =
-            `In ${selectedYear}, your basket is ${diff.toFixed(1)} percentage points above the official inflation rate. A basket weighted toward fast-rising essentials can make inflation feel harsher than the headline number suggests.`;
+            `In ${selectedYear}, your basket is ${diff.toFixed(1)} percentage points above the official inflation rate. Because more of your spending is concentrated in faster-rising categories, inflation is likely to feel more severe than the headline number suggests.`;
     } else {
         comparisonText.textContent =
-            `In ${selectedYear}, your basket is ${Math.abs(diff).toFixed(1)} percentage points below the official inflation rate. Your spending mix is less exposed to the fastest-rising categories.`;
+            `In ${selectedYear}, your basket is ${Math.abs(diff).toFixed(1)} percentage points below the official inflation rate. Your spending mix is less exposed to the categories with the strongest price increases.`;
     }
 
     updateStats();

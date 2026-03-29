@@ -12,7 +12,6 @@
     --all: #475569;
     --food: #10b981;
     --shelter: #3b82f6;
-    --gas: #f59e0b;
     --transportation: #8b5cf6;
     --personal: #ef4444;
 
@@ -33,7 +32,7 @@ body {
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background:
         radial-gradient(circle at top left, rgba(59, 130, 246, 0.05), transparent 28%),
-        radial-gradient(circle at top right, rgba(245, 158, 11, 0.05), transparent 30%),
+        radial-gradient(circle at top right, rgba(139, 92, 246, 0.05), transparent 30%),
         linear-gradient(180deg, #f7f9fc 0%, #f2f5f9 100%);
     color: var(--text);
 }
@@ -173,10 +172,18 @@ body {
     margin-bottom: 18px;
 }
 
+.chart-header-stacked {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+}
+
 .chart-header h3 {
     margin: 0;
     font-size: 1.4rem;
     letter-spacing: -0.02em;
+    max-width: 760px;
 }
 
 .chart-legend {
@@ -185,6 +192,11 @@ body {
     gap: 10px 16px;
     justify-content: flex-end;
     max-width: 420px;
+}
+
+.chart-legend-left {
+    justify-content: flex-start;
+    max-width: none;
 }
 
 .legend-item {
@@ -216,9 +228,10 @@ body {
 
 .chart-footer {
     display: grid;
-    grid-template-columns: 1.4fr 1fr;
+    grid-template-columns: 1.4fr 220px;
     gap: 22px;
     margin-top: 18px;
+    align-items: end;
 }
 
 .year-control {
@@ -236,9 +249,23 @@ body {
     width: 100%;
 }
 
+.year-inline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
 #yearLabel {
     color: var(--text);
-    font-weight: 700;
+    font-weight: 800;
+    font-size: 1rem;
+}
+
+.year-hint {
+    color: var(--subtle);
+    font-size: 0.85rem;
 }
 
 .year-stats {
@@ -247,11 +274,16 @@ body {
     gap: 14px;
 }
 
+.year-stats-single {
+    grid-template-columns: 1fr;
+}
+
 .stat-box {
     padding: 14px;
     border-radius: 14px;
     background: var(--panel-2);
     border: 1px solid var(--border);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .stat-label {
@@ -266,9 +298,20 @@ body {
     font-weight: 700;
 }
 
+.section-bridge {
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.04));
+    border: 1px solid var(--border);
+    color: var(--muted);
+    line-height: 1.7;
+    font-size: 0.96rem;
+}
+
 .category-cards {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 14px;
 }
 
@@ -277,6 +320,13 @@ body {
     border-radius: 16px;
     background: var(--panel-2);
     border: 1px solid var(--border);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.category-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    border-color: #c6d3e3;
 }
 
 .category-card-title {
@@ -302,15 +352,37 @@ body {
     gap: 18px;
 }
 
+.formula-note {
+    margin: 0;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(239, 68, 68, 0.04), rgba(59, 130, 246, 0.03));
+    border: 1px solid var(--border);
+    color: var(--muted);
+    line-height: 1.7;
+    font-size: 0.96rem;
+}
+
 .slider-group {
     display: grid;
-    grid-template-columns: 190px 1fr 70px;
+    grid-template-columns: 180px 1fr 78px 70px;
     gap: 16px;
     align-items: center;
 }
 
 .slider-group label {
     color: var(--muted);
+}
+
+.weight-input {
+    width: 78px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text);
+    font: inherit;
+    text-align: right;
 }
 
 .slider-group span {
@@ -354,7 +426,7 @@ body {
     width: 120px;
     height: 40px;
     border-radius: 14px 14px 0 0;
-    transition: height 0.7s ease;
+    transition: height 0.6s ease;
 }
 
 .comparison-bar.official {
@@ -418,6 +490,22 @@ body {
     stroke-dasharray: 4 4;
 }
 
+.selected-line {
+    stroke: #0f172a;
+    stroke-width: 1.4;
+    stroke-dasharray: 3 4;
+    opacity: 0.55;
+}
+
+.selected-dot {
+    stroke: #ffffff;
+    stroke-width: 2;
+}
+
+.chart-click-target {
+    cursor: crosshair;
+}
+
 .tooltip {
     position: absolute;
     pointer-events: none;
@@ -478,7 +566,7 @@ body {
 
 @media (max-width: 1100px) {
     .category-cards {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
@@ -495,22 +583,22 @@ body {
         grid-template-columns: 1fr;
     }
 
-    .category-cards {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 640px) {
-    .hero {
-        padding-top: 70px;
-    }
-
     .slider-group {
         grid-template-columns: 1fr;
     }
 
     .slider-group span {
         text-align: left;
+    }
+
+    .weight-input {
+        text-align: left;
+    }
+}
+
+@media (max-width: 640px) {
+    .hero {
+        padding-top: 70px;
     }
 
     .category-cards {
